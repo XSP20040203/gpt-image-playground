@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeOpenAICompatibleBaseUrl } from '@/lib/api-base-url';
+import { verifyAdminUnlockToken } from '@/lib/admin-auth';
 import OpenAI from 'openai';
 import path from 'path';
 
@@ -22,11 +24,6 @@ type StreamingEvent = {
     }>;
     error?: string;
 };
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.OPENAI_API_BASE_URL
-});
 
 const outputDir = path.resolve(process.cwd(), 'generated-images');
 
@@ -73,13 +70,34 @@ function sha256(data: string): string {
     return crypto.createHash('sha256').update(data).digest('hex');
 }
 
+function normalizeBaseUrl(value: FormDataEntryValue | null, canOverrideApiBaseUrl: boolean): string | undefined {
+    const configuredBaseUrl = process.env.OPENAI_API_BASE_URL;
+    if (!canOverrideApiBaseUrl) {
+        return configuredBaseUrl;
+    }
+
+    return normalizeOpenAICompatibleBaseUrl(value) || configuredBaseUrl;
+}
+
+function createOpenAIClient(formData: FormData) {
+    const requestApiKey = formData.get('apiKey');
+    const apiKey = typeof requestApiKey === 'string' && requestApiKey.trim() ? requestApiKey.trim() : process.env.OPENAI_API_KEY;
+    const baseURL = normalizeBaseUrl(formData.get('apiBaseUrl'), verifyAdminUnlockToken(formData.get('adminUnlockToken')));
+
+    if (!apiKey) {
+        throw Object.assign(new Error('Missing API Key / SK. Please fill it in the API Connection panel.'), {
+            status: 400
+        });
+    }
+
+    return new OpenAI({
+        apiKey,
+        baseURL
+    });
+}
+
 export async function POST(request: NextRequest) {
     console.log('Received POST request to /api/images');
-
-    if (!process.env.OPENAI_API_KEY) {
-        console.error('OPENAI_API_KEY is not set.');
-        return NextResponse.json({ error: 'Server configuration error: API key not found.' }, { status: 500 });
-    }
     try {
         let effectiveStorageMode: 'fs' | 'indexeddb';
         const explicitMode = process.env.NEXT_PUBLIC_IMAGE_STORAGE_MODE;
@@ -103,6 +121,7 @@ export async function POST(request: NextRequest) {
         }
 
         const formData = await request.formData();
+        const openai = createOpenAIClient(formData);
 
         if (process.env.APP_PASSWORD) {
             const clientPasswordHash = formData.get('passwordHash') as string | null;
@@ -151,6 +170,12 @@ export async function POST(request: NextRequest) {
                 (formData.get('background') as OpenAI.Images.ImageGenerateParams['background']) || 'auto';
             const moderation =
                 (formData.get('moderation') as OpenAI.Images.ImageGenerateParams['moderation']) || 'auto';
+            const seedStr = formData.get('seed') as string | null;
+            const stepsStr = formData.get('steps') as string | null;
+            const guidanceScaleStr = formData.get('guidance_scale') as string | null;
+            const sampler = formData.get('sampler') as string | null;
+            const scheduler = formData.get('scheduler') as string | null;
+            const negativePrompt = formData.get('negative_prompt') as string | null;
 
             const baseParams = {
                 model,
@@ -163,10 +188,47 @@ export async function POST(request: NextRequest) {
                 moderation
             };
 
+            const compatibilityParams = baseParams as OpenAI.Images.ImageGenerateParams & Record<string, unknown>;
+
+            if (seedStr) {
+                const seed = parseInt(seedStr, 10);
+                if (Number.isFinite(seed)) {
+                    compatibilityParams.seed = seed;
+                }
+            }
+
+            if (stepsStr) {
+                const steps = parseInt(stepsStr, 10);
+                if (Number.isFinite(steps)) {
+                    compatibilityParams.steps = Math.max(1, Math.min(steps, 150));
+                }
+            }
+
+            if (guidanceScaleStr) {
+                const guidanceScale = parseFloat(guidanceScaleStr);
+                if (Number.isFinite(guidanceScale)) {
+                    compatibilityParams.guidance_scale = Math.max(0, Math.min(guidanceScale, 30));
+                    compatibilityParams.cfg_scale = Math.max(0, Math.min(guidanceScale, 30));
+                }
+            }
+
+            if (sampler) {
+                compatibilityParams.sampler = sampler;
+                compatibilityParams.sampler_name = sampler;
+            }
+
+            if (scheduler) {
+                compatibilityParams.scheduler = scheduler;
+            }
+
+            if (negativePrompt) {
+                compatibilityParams.negative_prompt = negativePrompt;
+            }
+
             if ((output_format === 'jpeg' || output_format === 'webp') && output_compression_str) {
                 const compression = parseInt(output_compression_str, 10);
                 if (!isNaN(compression) && compression >= 0 && compression <= 100) {
-                    (baseParams as OpenAI.Images.ImageGenerateParams).output_compression = compression;
+                    compatibilityParams.output_compression = compression;
                 }
             }
 

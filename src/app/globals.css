@@ -120,3 +120,77 @@
     @apply bg-background text-foreground;
   }
 }
+
+.light body {
+  background: #f8fafc;
+  color: #111827;
+}
+
+.light .bg-black {
+  background-color: #ffffff !important;
+}
+
+.light .bg-neutral-900,
+.light .bg-neutral-800,
+.light .bg-neutral-800\/50,
+.light .bg-neutral-950,
+.light .bg-white\/5,
+.light .bg-white\/10 {
+  background-color: #f3f6fb !important;
+}
+
+.light .bg-black\/30,
+.light .bg-black\/50,
+.light .bg-black\/70 {
+  background-color: rgb(255 255 255 / 0.78) !important;
+}
+
+.light .bg-white\/\[0\.03\] {
+  background-color: #f8fafc !important;
+}
+
+.light .text-white {
+  color: #111827 !important;
+}
+
+.light .text-white\/80,
+.light .text-white\/70,
+.light .text-white\/60,
+.light .text-white\/50,
+.light .text-white\/45,
+.light .text-white\/40,
+.light .text-white\/55,
+.light .text-white\/75,
+.light .text-white\/85 {
+  color: #4b5563 !important;
+}
+
+.light .border-white\/10,
+.light .border-white\/15,
+.light .border-white\/20,
+.light .border-white\/30,
+.light .border-white\/40 {
+  border-color: #d9e2ef !important;
+}
+
+.light .placeholder\:text-white\/40::placeholder {
+  color: #94a3b8 !important;
+}
+
+.light .focus\:border-white\/50:focus {
+  border-color: #64748b !important;
+}
+
+.light .ring-offset-black {
+  --tw-ring-offset-color: #ffffff !important;
+}
+
+.light .bg-white.text-black,
+.light button.bg-white {
+  background-color: #111827 !important;
+  color: #ffffff !important;
+}
+
+.light .hover\:bg-white\/90:hover {
+  background-color: #1f2937 !important;
+}

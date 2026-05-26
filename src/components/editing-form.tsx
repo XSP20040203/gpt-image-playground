@@ -526,7 +526,7 @@ export function EditingForm({
                             </Button>
                         )}
                     </div>
-                    <CardDescription className='mt-1 text-white/60'>Modify an existing image with a text prompt.</CardDescription>
+                    <CardDescription className='mt-1 text-white/60'>Edit a source image with a prompt.</CardDescription>
                 </div>
                 <ModeToggle currentMode={currentMode} onModeChange={onModeChange} />
             </CardHeader>

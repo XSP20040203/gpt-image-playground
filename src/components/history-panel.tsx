@@ -2,6 +2,7 @@
 
 import type { HistoryMetadata } from '@/app/page';
 import { getModelRates, type GptImageModel } from '@/lib/cost-utils';
+import { downloadImageBatch } from '@/lib/image-download';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,6 +27,7 @@ import {
     HardDrive,
     Database,
     FileImage,
+    Download,
     Trash2
 } from 'lucide-react';
 import Image from 'next/image';
@@ -97,6 +99,22 @@ function HistoryPanelImpl({
         } catch (err) {
             console.error('Failed to copy text: ', err);
         }
+    };
+
+    const handleDownloadHistoryItem = (item: HistoryMetadata) => {
+        const originalStorageMode = item.storageModeUsed || 'fs';
+        const images = item.images
+            .map((image) => {
+                const path =
+                    originalStorageMode === 'indexeddb'
+                        ? getImageSrc(image.filename)
+                        : `/api/image/${image.filename}`;
+
+                return path ? { path, filename: image.filename } : null;
+            })
+            .filter(Boolean) as { path: string; filename: string }[];
+
+        downloadImageBatch(images);
     };
 
     return (
@@ -507,6 +525,16 @@ function HistoryPanelImpl({
                                                     </DialogFooter>
                                                 </DialogContent>
                                             </Dialog>
+                                            <Button
+                                                type='button'
+                                                className='h-6 w-6 bg-neutral-800 text-white/80 hover:bg-neutral-700 hover:text-white'
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDownloadHistoryItem(item);
+                                                }}
+                                                aria-label='Download history images'>
+                                                <Download size={14} />
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>

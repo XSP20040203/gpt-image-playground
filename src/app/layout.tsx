@@ -1,4 +1,5 @@
 import './globals.css';
+import { LanguageProvider } from '@/lib/i18n';
 import { ThemeProvider } from '@/components/theme-provider';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -14,10 +15,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: 'GPT Image Playground',
-    description: "Generate and edit images using OpenAI's GPT Image models.",
+    title: 'XSP Image Playground',
+    description: 'Generate and edit images with XSP Image Playground.',
     icons: {
-        icon: '/favicon.svg'
+        icon: '/xsp-logo.png'
     }
 };
 
@@ -29,8 +30,8 @@ export default function RootLayout({
     return (
         <html lang='en' suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false} disableTransitionOnChange>
-                    {children}
+                <ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
+                    <LanguageProvider>{children}</LanguageProvider>
                 </ThemeProvider>
             </body>
         </html>
